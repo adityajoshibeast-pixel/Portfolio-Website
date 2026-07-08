@@ -11,23 +11,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("DEBUG - raw credentials:", credentials);
-
+        
         if (!credentials?.username || !credentials?.password) {
-          console.log("DEBUG - missing fields");
           return null;
         }
 
         const adminUsername = process.env.ADMIN_USERNAME;
         const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-        console.log("DEBUG - entered username:", JSON.stringify(credentials.username));
-        console.log("DEBUG - env username:", JSON.stringify(adminUsername));
-        console.log("DEBUG - env hash exists:", !!adminPasswordHash);
-        console.log("DEBUG - env hash value:", adminPasswordHash);
 
         if (credentials.username !== adminUsername) {
-          console.log("DEBUG - username mismatch");
+       
           return null;
         }
 
@@ -36,7 +30,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           adminPasswordHash as string
         );
 
-        console.log("DEBUG - password valid:", isValid);
+       
 
         if (!isValid) {
           return null;

@@ -12,7 +12,6 @@ import Resume from "@/models/Resume";
 import Testimonial from "@/models/Testimonial";
 import FestiveOffer from "@/models/FestiveOffer";
 import Footer from "@/components/Footer";
-
 export const dynamic = "force-dynamic";
 
 async function getProjects() {
@@ -190,12 +189,7 @@ export default async function Home() {
         <div className="mt-8">
           <ContactForm />
         </div>
-
-        {contact.email && (
-          <p className="mt-8 font-body text-sm text-muted">
-            Or email directly — <span className="text-accent">{contact.email}</span>
-          </p>
-        )}
+<br />
         {contact.phone && (
           <p className="mt-2 font-body text-sm text-muted">{contact.phone}</p>
         )}
