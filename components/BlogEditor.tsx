@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { uploadToCloudinary } from "@/lib/uploadImage";
 
 type Post = {
   _id: string;
@@ -47,36 +48,37 @@ export default function BlogEditor() {
     e.preventDefault();
     setSaving(true);
 
-    const content = editorRef.current?.innerHTML || "";
-    let coverImage = "";
+    try {
+      const content = editorRef.current?.innerHTML || "";
+      let coverImage = "";
 
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      coverImage = uploadData.url;
+      if (file) {
+        coverImage = await uploadToCloudinary(file);
+      }
+
+      const payload = { title, excerpt, content, ...(coverImage && { coverImage }) };
+
+      if (editingId) {
+        await fetch("/api/blog", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+      } else {
+        await fetch("/api/blog", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      resetForm();
+      fetchPosts();
+    } catch (error) {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    const payload = { title, excerpt, content, ...(coverImage && { coverImage }) };
-
-    if (editingId) {
-      await fetch("/api/blog", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, ...payload }),
-      });
-    } else {
-      await fetch("/api/blog", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    setSaving(false);
-    resetForm();
-    fetchPosts();
   };
 
   const handleEdit = (post: Post) => {
@@ -111,7 +113,7 @@ export default function BlogEditor() {
           type="text"
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
-          placeholder="Short summary (shown in blog list)"
+          placeholder="Short summary"
           className="w-full rounded-lg border border-surface-2 bg-bg px-4 py-2 font-body text-text outline-none focus:border-accent"
           required
         />
@@ -125,7 +127,7 @@ export default function BlogEditor() {
         <div className="flex gap-2">
           <button type="button" onClick={() => applyFormat("bold")} className="rounded-lg border border-surface-2 px-3 py-1.5 font-body text-sm font-bold text-text hover:border-accent/40">B</button>
           <button type="button" onClick={() => applyFormat("italic")} className="rounded-lg border border-surface-2 px-3 py-1.5 font-body text-sm italic text-text hover:border-accent/40">I</button>
-          <button type="button" onClick={() => applyFormat("insertUnorderedList")} className="rounded-lg border border-surface-2 px-3 py-1.5 font-body text-sm text-text hover:border-accent/40">• List</button>
+          <button type="button" onClick={() => applyFormat("insertUnorderedList")} className="rounded-lg border border-surface-2 px-3 py-1.5 font-body text-sm text-text hover:border-accent/40">List</button>
         </div>
 
         <div
@@ -143,11 +145,11 @@ export default function BlogEditor() {
           >
             {saving ? "Saving..." : editingId ? "Update Post" : "Publish Post"}
           </button>
-          {editingId && (
+          {editingId ? (
             <button type="button" onClick={resetForm} className="rounded-lg border border-surface-2 px-5 py-2 font-body text-sm text-muted hover:border-accent/40">
               Cancel
             </button>
-          )}
+          ) : null}
         </div>
       </form>
 

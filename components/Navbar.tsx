@@ -3,7 +3,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-surface-2/60 bg-bg/80 backdrop-blur-md">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <div className="font-mono text-lg font-medium text-text">
-          aditya<span className="text-accent">.dev</span>
+          Aditya<span className="text-accent">.Dev</span>
           <span className="ml-0.5 text-accent animate-blink">_</span>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { uploadToCloudinary } from "@/lib/uploadImage";
 
 type Testimonial = {
   _id: string;
@@ -32,28 +33,29 @@ export default function TestimonialsEditor() {
     e.preventDefault();
     setSaving(true);
 
-    let imageUrl = "";
+    try {
+      let imageUrl = "";
 
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url;
+      if (file) {
+        imageUrl = await uploadToCloudinary(file);
+      }
+
+      await fetch("/api/testimonials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, role, quote, imageUrl }),
+      });
+
+      setName("");
+      setRole("");
+      setQuote("");
+      setFile(null);
+      fetchTestimonials();
+    } catch (error) {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    await fetch("/api/testimonials", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, role, quote, imageUrl }),
-    });
-
-    setName("");
-    setRole("");
-    setQuote("");
-    setFile(null);
-    setSaving(false);
-    fetchTestimonials();
   };
 
   const handleDelete = async (id: string) => {
@@ -81,7 +83,7 @@ export default function TestimonialsEditor() {
           type="text"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          placeholder="Role / Company (e.g., Founder, XYZ Startup)"
+          placeholder="Role / Company"
           className="w-full rounded-lg border border-surface-2 bg-bg px-4 py-2 font-body text-text outline-none focus:border-accent"
           required
         />
@@ -110,10 +112,7 @@ export default function TestimonialsEditor() {
 
       <div className="mt-6 space-y-3">
         {testimonials.map((t) => (
-          <div
-            key={t._id}
-            className="flex items-center justify-between rounded-xl border border-surface-2 bg-bg p-3"
-          >
+          <div key={t._id} className="flex items-center justify-between rounded-xl border border-surface-2 bg-bg p-3">
             <div>
               <p className="font-body text-sm font-medium text-text">{t.name}</p>
               <p className="font-body text-xs text-muted">{t.role}</p>

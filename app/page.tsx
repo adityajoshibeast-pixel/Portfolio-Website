@@ -111,13 +111,13 @@ export default async function Home() {
           <div className="p-8 sm:p-12">
             <p className="font-mono text-sm text-accent-2">const developer = {"{"}</p>
             <p className="mt-2 pl-4 font-display text-3xl font-semibold text-text sm:text-4xl">
-              name: <span className="text-accent">"Aditya"</span>,
+              Name: <span className="text-accent">"Aditya"</span>,
             </p>
             <p className="mt-3 pl-4 font-body text-lg text-muted">
-              stack: ["Next.js", "AI APIs", "MongoDB"],
+              Stack: ["Next.js", "AI APIs", "MongoDB"],
             </p>
             <p className="mt-3 pl-4 font-body text-lg text-muted">
-              status: <span className="text-accent">"available_for_freelance"</span>
+              Status: <span className="text-accent">"Available_for_freelance"</span>
               <span className="ml-1 text-accent animate-blink">|</span>
             </p>
             <p className="mt-2 font-mono text-sm text-accent-2">{"}"}</p>

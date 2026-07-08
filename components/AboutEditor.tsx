@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { uploadToCloudinary } from "@/lib/uploadImage";
 
 export default function AboutEditor() {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -43,36 +44,33 @@ export default function AboutEditor() {
     setSaving(true);
     setSaved(false);
 
-    const content = editorRef.current?.innerHTML || "";
-    let imageUrl = "";
+    try {
+      const content = editorRef.current?.innerHTML || "";
+      let imageUrl = "";
 
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
+      if (file) {
+        imageUrl = await uploadToCloudinary(file);
+      }
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      await fetch("/api/about", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, ...(imageUrl && { imageUrl }) }),
       });
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url;
+
+      if (imageUrl) {
+        setCurrentImageUrl(imageUrl);
+      }
+
+      setFile(null);
+      setPreviewUrl("");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    await fetch("/api/about", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, ...(imageUrl && { imageUrl }) }),
-    });
-
-    if (imageUrl) {
-      setCurrentImageUrl(imageUrl);
-    }
-
-    setFile(null);
-    setPreviewUrl("");
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   return (

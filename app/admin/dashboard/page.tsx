@@ -1,12 +1,14 @@
 "use client";
-import FestiveOfferEditor from "@/components/FestiveOfferEditor";
+
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import AboutEditor from "@/components/AboutEditor";
 import ContactEditor from "@/components/ContactEditor";
 import ResumeEditor from "@/components/ResumeEditor";
 import TestimonialsEditor from "@/components/TestimonialsEditor";
+import FestiveOfferEditor from "@/components/FestiveOfferEditor";
 import BlogEditor from "@/components/BlogEditor";
+import { uploadToCloudinary } from "@/lib/uploadImage";
 
 type Offer = {
   _id: string;
@@ -50,45 +52,42 @@ export default function Dashboard() {
     e.preventDefault();
     setUploading(true);
 
-    let imageUrl = "";
+    try {
+      let imageUrl = "";
 
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
+      if (file) {
+        imageUrl = await uploadToCloudinary(file);
+      }
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url;
+      const payload = {
+        title,
+        description,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        demoLink,
+        ...(imageUrl && { imageUrl }),
+      };
+
+      if (editingId) {
+        await fetch("/api/offers", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+      } else {
+        await fetch("/api/offers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      resetForm();
+      fetchOffers();
+    } catch (error) {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
-
-    const payload = {
-      title,
-      description,
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-      demoLink,
-      ...(imageUrl && { imageUrl }),
-    };
-
-    if (editingId) {
-      await fetch("/api/offers", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, ...payload }),
-      });
-    } else {
-      await fetch("/api/offers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    setUploading(false);
-    resetForm();
-    fetchOffers();
   };
 
   const handleEdit = (offer: Offer) => {
@@ -134,12 +133,15 @@ export default function Dashboard() {
         <div className="mt-8">
           <TestimonialsEditor />
         </div>
-<div className="mt-8">
-  <FestiveOfferEditor />
-</div>
-<div className="mt-8">
-  <BlogEditor />
-</div>
+
+        <div className="mt-8">
+          <FestiveOfferEditor />
+        </div>
+
+        <div className="mt-8">
+          <BlogEditor />
+        </div>
+
         <form
           onSubmit={handleSubmit}
           className="mt-8 space-y-4 rounded-2xl border border-surface-2 bg-surface p-6"
