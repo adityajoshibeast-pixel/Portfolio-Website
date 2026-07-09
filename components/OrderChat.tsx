@@ -182,8 +182,8 @@ export default function OrderChat() {
         </div>
       )}
 
-     {!isOpen && !hasClicked && (
-        <div className="fixed bottom-8 left-24 z-50 animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg">
+    {!isOpen && !hasClicked && (
+  <div className="fixed bottom-8 left-24 z-50 hidden animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg sm:block">
           <p className="whitespace-nowrap font-body text-xs font-medium text-text">
             Place an order! 📦
           </p>
@@ -198,7 +198,7 @@ export default function OrderChat() {
         <button
           onClick={handleToggle}
           disabled={status === "loading"}
-          className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
+          className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50 sm:h-14 sm:w-14"
         >
           {isOpen ? "✕" : "🛒"}
         </button>

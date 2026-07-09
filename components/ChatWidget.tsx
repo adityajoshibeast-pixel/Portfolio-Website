@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react"
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -112,8 +112,9 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {!isOpen && !hasOpened && (
-        <div className="fixed bottom-8 right-24 z-50 animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg">
+    
+        {!isOpen && !hasOpened && (
+  <div className="fixed bottom-8 right-24 z-50 hidden animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg sm:block">
           <p className="whitespace-nowrap font-body text-xs font-medium text-text">
             Ask me anything! 👋
           </p>
@@ -127,7 +128,7 @@ export default function ChatWidget() {
         )}
         <button
           onClick={handleOpen}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-accent text-bg shadow-lg transition-transform hover:scale-105 cursor-pointer"
+         className="relative flex h-12 w-12 items-center justify-center rounded-full bg-accent text-bg shadow-lg transition-transform hover:scale-105 cursor-pointer sm:h-14 sm:w-14"
         >
           {isOpen ? "✕" : "💬"}
         </button>
