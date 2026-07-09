@@ -20,6 +20,7 @@ function getConversationIdFromEmail(email: string) {
 export default function OrderChat() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [hasClicked, setHasClicked] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -101,12 +102,13 @@ export default function OrderChat() {
   };
 
   const handleToggle = () => {
-    if (!session) {
-      signIn("google", { callbackUrl: window.location.href });
-      return;
-    }
-    setIsOpen(!isOpen);
-  };
+  setHasClicked(true);
+  if (!session) {
+    signIn("google", { callbackUrl: window.location.href });
+    return;
+  }
+  setIsOpen(!isOpen);
+};
 
   return (
     <>
@@ -180,13 +182,27 @@ export default function OrderChat() {
         </div>
       )}
 
-      <button
-        onClick={handleToggle}
-        disabled={status === "loading"}
-        className="fixed bottom-6 left-6 z-50 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
-      >
-        {isOpen ? "✕" : "🛒"}
-      </button>
+     {!isOpen && !hasClicked && (
+        <div className="fixed bottom-8 left-24 z-50 animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg">
+          <p className="whitespace-nowrap font-body text-xs font-medium text-text">
+            Place an order! 📦
+          </p>
+          <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-surface-2 bg-surface" />
+        </div>
+      )}
+
+      <div className="fixed bottom-6 left-6 z-50">
+        {!isOpen && (
+          <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-75" />
+        )}
+        <button
+          onClick={handleToggle}
+          disabled={status === "loading"}
+          className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
+        >
+          {isOpen ? "✕" : "🛒"}
+        </button>
+      </div>
     </>
   );
 }
