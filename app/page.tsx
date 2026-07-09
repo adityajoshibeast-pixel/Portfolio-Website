@@ -13,6 +13,7 @@ import Testimonial from "@/models/Testimonial";
 import FestiveOffer from "@/models/FestiveOffer";
 import Footer from "@/components/Footer";
 export const dynamic = "force-dynamic";
+import OrderChat from "@/components/OrderChat";
 
 async function getProjects() {
   await connectToDatabase();
@@ -213,6 +214,7 @@ export default async function Home() {
       </footer>
 
       <ChatWidget />
+      <OrderChat />
       <Footer />
     </div>
   );

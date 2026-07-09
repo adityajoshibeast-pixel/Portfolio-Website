@@ -110,12 +110,14 @@ export default function Dashboard() {
           <h1 className="font-display text-2xl font-semibold text-text">
             Admin Dashboard
           </h1>
-          <button
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
-            className="rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center">
+            <a href="/admin/chats" className="mr-3 rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40">
+              Order Chats
+            </a>
+            <button onClick={() => signOut({ callbackUrl: "/admin/login" })} className="rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40">
+              Sign Out
+            </button>
+          </div>
         </div>
 
         <div className="mt-8">
