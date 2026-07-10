@@ -27,10 +27,12 @@ export default function OrderChat() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const clientEmail = session?.user?.email || "";
-  const clientName = session?.user?.name || "";
-  const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "";
+ const sessionRole = (session?.user as any)?.role;
+const isValidClientSession = !!session && sessionRole === "client" && !!session.user?.email;
 
+const clientEmail = isValidClientSession ? session!.user!.email! : "";
+const clientName = isValidClientSession ? session!.user!.name || "" : "";
+const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "";
   useEffect(() => {
     if (!conversationId) return;
 
@@ -58,13 +60,7 @@ export default function OrderChat() {
   }, [messages, isOpen]);
 
  const handleSend = async () => {
-  console.log("DEBUG - handleSend called");
-  console.log("DEBUG - text:", text, "file:", file, "sending:", sending, "conversationId:", conversationId);
-
-  if ((!text.trim() && !file) || sending || !conversationId) {
-    console.log("DEBUG - blocked from sending");
-    return;
-  }
+  if ((!text.trim() && !file) || sending || !conversationId) return;
   setSending(true);
 
     try {
@@ -107,9 +103,9 @@ export default function OrderChat() {
     }
   };
 
-  const handleToggle = () => {
+const handleToggle = () => {
   setHasClicked(true);
-  if (!session) {
+  if (!isValidClientSession) {
     signIn("google", { callbackUrl: window.location.href });
     return;
   }
@@ -118,7 +114,7 @@ export default function OrderChat() {
 
   return (
     <>
-      {isOpen && session && (
+      {isOpen && isValidClientSession && (
         <div className="fixed bottom-24 left-6 z-50 flex h-[460px] w-[340px] flex-col overflow-hidden rounded-2xl border border-surface-2 bg-surface shadow-2xl">
           <div className="flex items-center justify-between border-b border-surface-2 bg-surface-2/50 px-4 py-3">
             <span className="font-mono text-sm text-accent">Order Chat</span>
