@@ -35,18 +35,34 @@ export async function POST(req: NextRequest) {
     lastSender: sender,
     updatedAt: new Date(),
   };
-  if (sender === "client" && clientName) {
-    updateData.clientName = clientName;
+
+  let resolvedClientName = clientName;
+
+  if (sender === "client") {
+    updateData.adminUnread = true;
+    if (clientName) updateData.clientName = clientName;
+  } else {
+    updateData.clientUnread = true;
+    updateData.adminUnread = false;
   }
 
-  await ChatConversation.findOneAndUpdate(
+  const conversation = await ChatConversation.findOneAndUpdate(
     { conversationId },
     { $set: updateData, $setOnInsert: { conversationId } },
     { upsert: true, new: true }
   );
 
+  if (!resolvedClientName) {
+    resolvedClientName = conversation.clientName;
+  }
+
   await pusherServer.trigger(`order-chat-${conversationId}`, "new-message", message);
-  await pusherServer.trigger("admin-chats", "conversation-updated", { conversationId });
+  await pusherServer.trigger("admin-chats", "conversation-updated", {
+    conversationId,
+    sender,
+    text: text || (fileType ? `[${fileType}]` : "Sent an attachment"),
+    clientName: resolvedClientName,
+  });
 
   return NextResponse.json(message);
 }

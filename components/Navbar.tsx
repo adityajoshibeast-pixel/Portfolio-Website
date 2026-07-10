@@ -10,14 +10,14 @@ export default function Navbar({ showLinks = true }: { showLinks?: boolean }) {
         </Link>
 
         {showLinks && (
-          <div className="hidden gap-8 font-body text-sm text-muted sm:flex">
-            <a href="/#projects" className="transition-colors hover:text-text">
+          <div className="flex items-center gap-6 font-body text-sm text-muted sm:gap-8">
+            <a href="/#projects" className="hidden transition-colors hover:text-text sm:inline">
               Projects
             </a>
-            <a href="/#about" className="transition-colors hover:text-text">
+            <a href="/#about" className="hidden transition-colors hover:text-text sm:inline">
               About
             </a>
-            <a href="/#contact" className="transition-colors hover:text-text">
+            <a href="/#contact" className="hidden transition-colors hover:text-text sm:inline">
               Contact
             </a>
             <a href="/blog" className="transition-colors hover:text-text">

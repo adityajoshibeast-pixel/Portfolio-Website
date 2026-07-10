@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getPusherClient } from "@/lib/pusherClient";
 import { uploadToCloudinary } from "@/lib/uploadImage";
+import { requestNotificationPermission, showNotification } from "@/lib/notifications";
 
 type Conversation = {
   _id: string;
@@ -38,13 +39,17 @@ export default function AdminChatsPage() {
   };
 
   useEffect(() => {
+    requestNotificationPermission();
     fetchConversations();
 
     const pusher = getPusherClient();
     const channel = pusher.subscribe("admin-chats");
-    channel.bind("conversation-updated", () => {
-      fetchConversations();
-    });
+    channel.bind("conversation-updated", (data: any) => {
+  fetchConversations();
+  if (data.sender === "client" && data.conversationId !== activeId) {
+    showNotification(`New message from ${data.clientName || "a client"}`, data.text || "Sent an attachment");
+  }
+});
 
     return () => {
       channel.unbind_all();

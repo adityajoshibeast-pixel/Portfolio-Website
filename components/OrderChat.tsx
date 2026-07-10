@@ -5,6 +5,7 @@ import { useSession, signIn } from "next-auth/react";
 import { getPusherClient } from "@/lib/pusherClient";
 import { uploadToCloudinary } from "@/lib/uploadImage";
 import OrderChatBadge from "@/components/OrderChatBadge";
+import { requestNotificationPermission, showNotification } from "@/lib/notifications";
 
 type Message = {
   _id?: string;
@@ -28,6 +29,11 @@ export default function OrderChat() {
   const [sending, setSending] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const sessionRole = (session?.user as any)?.role;
   const isValidClientSession = !!session && sessionRole === "client" && !!session.user?.email;
@@ -35,6 +41,12 @@ export default function OrderChat() {
   const clientEmail = isValidClientSession ? session!.user!.email! : "";
   const clientName = isValidClientSession ? session!.user!.name || "" : "";
   const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "";
+
+  useEffect(() => {
+    if (isValidClientSession) {
+      requestNotificationPermission();
+    }
+  }, [isValidClientSession]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -50,8 +62,9 @@ export default function OrderChat() {
     const channel = pusher.subscribe(`order-chat-${conversationId}`);
     channel.bind("new-message", (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
-      if (msg.sender === "admin" && !isOpen) {
+      if (msg.sender === "admin" && !isOpenRef.current) {
         setHasUnread(true);
+        showNotification("New message from Aditya", msg.text || "Sent an attachment");
       }
     });
 
@@ -59,7 +72,7 @@ export default function OrderChat() {
       channel.unbind_all();
       pusher.unsubscribe(`order-chat-${conversationId}`);
     };
-  }, [conversationId, isOpen]);
+  }, [conversationId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -159,14 +172,9 @@ export default function OrderChat() {
                 {msg.fileUrl && msg.fileType === "video" && (
                   <video src={msg.fileUrl} controls className="mb-1 max-h-40 rounded-lg" />
                 )}
-                {msg.fileUrl && msg.fileType === "pdf" && (
+                {msg.fileUrl && (msg.fileType === "pdf" || msg.fileType === "video") && (
                   <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block underline">
-                    Download PDF
-                  </a>
-                )}
-                {msg.fileUrl && msg.fileType === "video" && (
-                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block text-xs underline">
-                    Download video
+                    Download {msg.fileType === "pdf" ? "PDF" : "video"}
                   </a>
                 )}
                 {msg.text ? <p>{msg.text}</p> : null}
@@ -206,7 +214,16 @@ export default function OrderChat() {
         </div>
       )}
 
-      {!isOpen && !hasClicked && (
+      {!isOpen && hasUnread && (
+        <div className="fixed bottom-8 left-24 z-50 rounded-xl border border-red-400/40 bg-surface px-3 py-2 shadow-lg">
+          <p className="whitespace-nowrap font-body text-xs font-medium text-red-400">
+            New message/s
+          </p>
+          <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-red-400/40 bg-surface" />
+        </div>
+      )}
+
+      {!isOpen && !hasUnread && !hasClicked && (
         <div className="fixed bottom-8 left-24 z-50 hidden animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg sm:block">
           <p className="whitespace-nowrap font-body text-xs font-medium text-text">
             Place an order! 📦
