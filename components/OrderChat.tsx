@@ -57,9 +57,15 @@ export default function OrderChat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isOpen]);
 
-  const handleSend = async () => {
-    if ((!text.trim() && !file) || sending || !conversationId) return;
-    setSending(true);
+ const handleSend = async () => {
+  console.log("DEBUG - handleSend called");
+  console.log("DEBUG - text:", text, "file:", file, "sending:", sending, "conversationId:", conversationId);
+
+  if ((!text.trim() && !file) || sending || !conversationId) {
+    console.log("DEBUG - blocked from sending");
+    return;
+  }
+  setSending(true);
 
     try {
       let fileUrl = "";
