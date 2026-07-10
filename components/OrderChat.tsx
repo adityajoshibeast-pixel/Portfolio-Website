@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { getPusherClient } from "@/lib/pusherClient";
 import { uploadToCloudinary } from "@/lib/uploadImage";
+import OrderChatBadge from "@/components/OrderChatBadge";
 
 type Message = {
   _id?: string;
@@ -25,14 +26,16 @@ export default function OrderChat() {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
- const sessionRole = (session?.user as any)?.role;
-const isValidClientSession = !!session && sessionRole === "client" && !!session.user?.email;
+  const sessionRole = (session?.user as any)?.role;
+  const isValidClientSession = !!session && sessionRole === "client" && !!session.user?.email;
 
-const clientEmail = isValidClientSession ? session!.user!.email! : "";
-const clientName = isValidClientSession ? session!.user!.name || "" : "";
-const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "";
+  const clientEmail = isValidClientSession ? session!.user!.email! : "";
+  const clientName = isValidClientSession ? session!.user!.name || "" : "";
+  const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "";
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -47,21 +50,24 @@ const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "
     const channel = pusher.subscribe(`order-chat-${conversationId}`);
     channel.bind("new-message", (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
+      if (msg.sender === "admin" && !isOpen) {
+        setHasUnread(true);
+      }
     });
 
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(`order-chat-${conversationId}`);
     };
-  }, [conversationId]);
+  }, [conversationId, isOpen]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isOpen]);
 
- const handleSend = async () => {
-  if ((!text.trim() && !file) || sending || !conversationId) return;
-  setSending(true);
+  const handleSend = async () => {
+    if ((!text.trim() && !file) || sending || !conversationId) return;
+    setSending(true);
 
     try {
       let fileUrl = "";
@@ -103,14 +109,23 @@ const conversationId = clientEmail ? getConversationIdFromEmail(clientEmail) : "
     }
   };
 
-const handleToggle = () => {
-  setHasClicked(true);
-  if (!isValidClientSession) {
-    signIn("google", { callbackUrl: window.location.href });
-    return;
-  }
-  setIsOpen(!isOpen);
-};
+  const handleToggle = () => {
+    setHasClicked(true);
+    if (!isValidClientSession) {
+      signIn("google", { callbackUrl: window.location.href });
+      return;
+    }
+    const opening = !isOpen;
+    setIsOpen(opening);
+    if (opening) {
+      setHasUnread(false);
+      fetch("/api/order-chat/mark-read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId, role: "client" }),
+      });
+    }
+  };
 
   return (
     <>
@@ -137,14 +152,21 @@ const handleToggle = () => {
                 }`}
               >
                 {msg.fileUrl && msg.fileType === "image" && (
-                  <img src={msg.fileUrl} alt="attachment" className="mb-1 max-h-40 rounded-lg" />
+                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                    <img src={msg.fileUrl} alt="attachment" className="mb-1 max-h-40 rounded-lg" />
+                  </a>
                 )}
                 {msg.fileUrl && msg.fileType === "video" && (
                   <video src={msg.fileUrl} controls className="mb-1 max-h-40 rounded-lg" />
                 )}
                 {msg.fileUrl && msg.fileType === "pdf" && (
                   <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block underline">
-                    View PDF
+                    Download PDF
+                  </a>
+                )}
+                {msg.fileUrl && msg.fileType === "video" && (
+                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block text-xs underline">
+                    Download video
                   </a>
                 )}
                 {msg.text ? <p>{msg.text}</p> : null}
@@ -184,8 +206,8 @@ const handleToggle = () => {
         </div>
       )}
 
-    {!isOpen && !hasClicked && (
-  <div className="fixed bottom-8 left-24 z-50 hidden animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg sm:block">
+      {!isOpen && !hasClicked && (
+        <div className="fixed bottom-8 left-24 z-50 hidden animate-bounce rounded-xl border border-surface-2 bg-surface px-3 py-2 shadow-lg sm:block">
           <p className="whitespace-nowrap font-body text-xs font-medium text-text">
             Place an order! 📦
           </p>
@@ -203,6 +225,7 @@ const handleToggle = () => {
           className="relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-transform hover:scale-105 disabled:opacity-50 sm:h-14 sm:w-14"
         >
           {isOpen ? "✕" : "🛒"}
+          <OrderChatBadge show={hasUnread} />
         </button>
       </div>
     </>

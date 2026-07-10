@@ -5,6 +5,8 @@ export interface ChatConversationDocument {
   clientName: string;
   lastMessage: string;
   lastSender: "client" | "admin";
+  adminUnread: boolean;
+  clientUnread: boolean;
   updatedAt: Date;
 }
 
@@ -13,6 +15,8 @@ const ChatConversationSchema = new Schema<ChatConversationDocument>({
   clientName: { type: String, default: "Visitor" },
   lastMessage: { type: String, default: "" },
   lastSender: { type: String, enum: ["client", "admin"], default: "client" },
+  adminUnread: { type: Boolean, default: false },
+  clientUnread: { type: Boolean, default: false },
   updatedAt: { type: Date, default: Date.now },
 });
 

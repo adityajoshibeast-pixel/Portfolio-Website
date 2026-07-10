@@ -10,6 +10,7 @@ type Conversation = {
   clientName: string;
   lastMessage: string;
   lastSender: string;
+  adminUnread: boolean;
   updatedAt: string;
 };
 
@@ -60,6 +61,12 @@ export default function AdminChatsPage() {
       setMessages(data);
     };
     fetchMessages();
+
+    fetch("/api/order-chat/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: activeId, role: "admin" }),
+    }).then(() => fetchConversations());
 
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`order-chat-${activeId}`);
@@ -113,6 +120,20 @@ export default function AdminChatsPage() {
     }
   };
 
+  const handleDelete = async (conversationId: string) => {
+    if (!confirm("Delete this conversation? This cannot be undone.")) return;
+
+    await fetch(`/api/order-chat/conversations?conversationId=${conversationId}`, {
+      method: "DELETE",
+    });
+
+    if (activeId === conversationId) {
+      setActiveId(null);
+      setMessages([]);
+    }
+    fetchConversations();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -130,19 +151,35 @@ export default function AdminChatsPage() {
           <p className="p-4 font-body text-sm text-muted">No conversations yet.</p>
         )}
         {conversations.map((c) => (
-          <button
+          <div
             key={c.conversationId}
-            onClick={() => setActiveId(c.conversationId)}
-            className={`block w-full cursor-pointer border-b border-surface-2 p-4 text-left transition-colors hover:bg-surface ${
+            className={`group flex items-center border-b border-surface-2 transition-colors hover:bg-surface ${
               activeId === c.conversationId ? "bg-surface" : ""
             }`}
           >
-            <p className="font-body text-sm font-medium text-text">{c.clientName}</p>
-            <p className="mt-1 truncate font-body text-xs text-muted">
-              {c.lastSender === "admin" ? "You: " : ""}
-              {c.lastMessage}
-            </p>
-          </button>
+            <button
+              onClick={() => setActiveId(c.conversationId)}
+              className="min-w-0 flex-1 cursor-pointer p-4 text-left"
+            >
+              <div className="flex items-center gap-2">
+                {c.adminUnread && (
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
+                )}
+                <p className="truncate font-body text-sm font-medium text-text">{c.clientName}</p>
+              </div>
+              <p className="mt-1 truncate font-body text-xs text-muted">
+                {c.lastSender === "admin" ? "You: " : ""}
+                {c.lastMessage}
+              </p>
+            </button>
+            <button
+              onClick={() => handleDelete(c.conversationId)}
+              className="mr-3 flex-shrink-0 cursor-pointer rounded-lg px-2 py-1 font-body text-xs text-muted opacity-0 hover:bg-red-400/10 hover:text-red-400 group-hover:opacity-100"
+              title="Delete conversation"
+            >
+              Delete
+            </button>
+          </div>
         ))}
       </div>
 
@@ -162,14 +199,16 @@ export default function AdminChatsPage() {
                   }`}
                 >
                   {msg.fileUrl && msg.fileType === "image" && (
-                    <img src={msg.fileUrl} alt="attachment" className="mb-1 max-h-60 rounded-lg" />
+                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <img src={msg.fileUrl} alt="attachment" className="mb-1 max-h-60 rounded-lg" />
+                    </a>
                   )}
                   {msg.fileUrl && msg.fileType === "video" && (
                     <video src={msg.fileUrl} controls className="mb-1 max-h-60 rounded-lg" />
                   )}
-                  {msg.fileUrl && msg.fileType === "pdf" && (
+                  {msg.fileUrl && (msg.fileType === "pdf" || msg.fileType === "video") && (
                     <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="mb-1 block underline">
-                      View PDF
+                      Download {msg.fileType === "pdf" ? "PDF" : "video"}
                     </a>
                   )}
                   {msg.text ? <p>{msg.text}</p> : null}

@@ -9,6 +9,8 @@ import TestimonialsEditor from "@/components/TestimonialsEditor";
 import FestiveOfferEditor from "@/components/FestiveOfferEditor";
 import BlogEditor from "@/components/BlogEditor";
 import { uploadToCloudinary } from "@/lib/uploadImage";
+import { getPusherClient } from "@/lib/pusherClient";
+import OrderChatBadge from "@/components/OrderChatBadge";
 
 type Offer = {
   _id: string;
@@ -28,6 +30,7 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
 
   const fetchOffers = async () => {
     const res = await fetch("/api/offers");
@@ -37,6 +40,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchOffers();
+  }, []);
+
+  useEffect(() => {
+    const checkUnread = async () => {
+      const res = await fetch("/api/order-chat/conversations");
+      const data = await res.json();
+      setHasUnreadChats(data.some((c: any) => c.adminUnread));
+    };
+    checkUnread();
+
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe("admin-chats");
+    channel.bind("conversation-updated", () => {
+      checkUnread();
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe("admin-chats");
+    };
   }, []);
 
   const resetForm = () => {
@@ -111,8 +134,9 @@ export default function Dashboard() {
             Admin Dashboard
           </h1>
           <div className="flex items-center">
-            <a href="/admin/chats" className="mr-3 rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40">
+            <a href="/admin/chats" className="relative mr-3 rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40">
               Order Chats
+              <OrderChatBadge show={hasUnreadChats} />
             </a>
             <button onClick={() => signOut({ callbackUrl: "/admin/login" })} className="rounded-lg border border-surface-2 px-4 py-2 font-body text-sm text-muted hover:border-accent/40">
               Sign Out
