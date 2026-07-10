@@ -1,57 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import ChatMessage from "@/models/ChatMessage";
-import ChatConversation from "@/models/ChatConversation";
-import pusherServer from "@/lib/pusherServer";
-import { auth } from "@/auth";
+import About from "@/models/About";
+import Offer from "@/models/Offer";
+import Contact from "@/models/Contact";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { conversationId, sender, text, fileUrl, fileType, clientName } = body;
-
-  if (!conversationId || !sender) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
-
-  if (sender === "admin") {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const { messages } = await req.json();
 
   await connectToDatabase();
+  const about = await About.findOne().lean();
+  const offers = await Offer.find().lean();
+  const contact = await Contact.findOne().lean();
 
-  const message = await ChatMessage.create({
-    conversationId,
-    sender,
-    text,
-    fileUrl,
-    fileType,
+  const aboutText = (about as any)?.content?.replace(/<[^>]*>/g, "") || "No about info yet.";
+  const projectsText = offers
+    .map((o: any) => `- ${o.title}: ${o.description} (Tags: ${(o.tags || []).join(", ")})`)
+    .join("\n");
+  const contactText = (contact as any)?.email
+    ? `Email: ${(contact as any).email}`
+    : "No contact info shared yet.";
+
+  const systemPrompt = `You are a helpful assistant on Aditya's developer portfolio website. Answer visitor questions about Aditya, his skills, and his projects, using ONLY the information below. Be friendly and concise. If asked something outside this info, politely say you don't have that detail and suggest contacting Aditya directly.
+
+About Aditya:
+${aboutText}
+
+Projects:
+${projectsText || "No projects listed yet."}
+
+Contact:
+${contactText}`;
+
+  const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      temperature: 0.7,
+      max_tokens: 500,
+    }),
   });
 
-  const updateData: any = {
-    lastMessage: text || (fileType ? `[${fileType}]` : ""),
-    lastSender: sender,
-    updatedAt: new Date(),
-  };
+  const data = await groqRes.json();
 
-  if (sender === "client") {
-    updateData.adminUnread = true;
-    if (clientName) updateData.clientName = clientName;
-  } else {
-    updateData.clientUnread = true;
-    updateData.adminUnread = false;
+  if (!groqRes.ok) {
+    return NextResponse.json({ error: "Chat service unavailable" }, { status: 500 });
   }
 
-  await ChatConversation.findOneAndUpdate(
-    { conversationId },
-    { $set: updateData, $setOnInsert: { conversationId } },
-    { upsert: true, new: true }
-  );
+  const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
 
-  await pusherServer.trigger(`order-chat-${conversationId}`, "new-message", message);
-  await pusherServer.trigger("admin-chats", "conversation-updated", { conversationId });
-
-  return NextResponse.json(message);
+  return NextResponse.json({ reply });
 }
